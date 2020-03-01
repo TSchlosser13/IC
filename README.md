@@ -5,9 +5,8 @@ Setup
 -----
 
 ```
-conda create -n IC python=3.7
+conda create -n IC python=3.7 --file requirements.txt
 conda activate IC
-pip install scikit-image scikit-learn
 ```
 
 

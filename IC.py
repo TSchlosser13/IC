@@ -76,6 +76,8 @@ import numpy as np
 from skimage.io        import imread
 from skimage.transform import resize
 
+from sklearn.preprocessing import normalize
+
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 from sklearn.ensemble              import ExtraTreesClassifier, RandomForestClassifier
 from sklearn.linear_model          import LogisticRegression, RidgeClassifier
@@ -121,13 +123,20 @@ def load_dataset(dataset, target_size):
 		files = [os.path.join(directory, file) for file in os.listdir(directory) if os.path.isfile(os.path.join(directory, file))]
 
 		for file in files:
-			image = imread(file)
+			if not file.endswith('.csv'):
+				image = imread(file)
+			else:
+				image = np.genfromtxt(file, delimiter=',')
 
 			if target_size is not None:
 				image = resize(image, target_size, order=0) # nearest-neighbor interpolation
 
 			data.append(image.flatten())
 			labels.append(i)
+
+	data_clipping_min = np.finfo('float32').min
+	data_clipping_max = np.finfo('float32').max
+	data = normalize(np.clip(data, data_clipping_min, data_clipping_max))
 
 	return sklearn.utils.Bunch(data=np.array(data), labels=np.array(labels))
 
@@ -190,7 +199,7 @@ def run_classifier(classifier, classifier_string, x_train, x_test, y_train, y_te
 def start_new_run(run, timestamp, x_train, x_test, y_train, y_test):
 	reports_dict = {}
 
-	log_file = open(f'IC_log_{timestamp}_run{run}.txt', 'w')
+	log_file = open(f'IC_log_{timestamp}_run{run}.log', 'w')
 
 
 
@@ -457,11 +466,12 @@ def run(
 	timestamp = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
 
 
-	if type(target_size) is not tuple:
-		target_size = tuple(target_size)
+	if target_size is not None:
+		if type(target_size) is not tuple:
+			target_size = tuple(target_size)
 
-	if len(target_size) == 1:
-		target_size *= 2
+		if len(target_size) == 1:
+			target_size *= 2
 
 
 	if not split_into_train_test:
@@ -493,7 +503,7 @@ def run(
 
 	IC_print(f'reports_dict_list={reports_dict_list}')
 
-	with open(f'IC_log_{timestamp}.txt', 'w') as log_file:
+	with open(f'IC_log_{timestamp}.log', 'w') as log_file:
 		IC_print(f'reports_dict_list={reports_dict_list}', file=log_file)
 
 
